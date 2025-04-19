@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">./tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory suffix="Test.php">./tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">./src</directory>
+        </include>
+    </coverage>
+    <php>
+        <env name="PTTAVM_USERNAME" value="test_username"/>
+        <env name="PTTAVM_PASSWORD" value="test_password"/>
+        <env name="PTTAVM_SHOP_ID" value="test_shop_id"/>
+        <env name="PTTAVM_API_URL" value="https://api.test.epttavm.com/"/>
+        <env name="PTTAVM_DEBUG" value="true"/>
+    </php>
+</phpunit> 

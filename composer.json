@@ -1,0 +1,51 @@
+{
+    "name": "wiensa/pttavm-sp-api",
+    "description": "PTT AVM Pazaryeri API Laravel Entegrasyon Paketi",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Marketplace Team",
+            "email": "info@marketplace-team.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.3",
+        "guzzlehttp/guzzle": "^7.0",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0",
+        "phpunit/phpunit": "^10.0",
+        "laravel/pint": "^1.13"
+    },
+    "autoload": {
+        "psr-4": {
+            "PttavmApi\\PttavmSpApi\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PttavmApi\\PttavmSpApi\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "PttavmApi\\PttavmSpApi\\PttAvmServiceProvider"
+            ],
+            "aliases": {
+                "PttAvm": "PttavmApi\\PttavmSpApi\\Facades\\PttAvm"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "format": "vendor/bin/pint"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
