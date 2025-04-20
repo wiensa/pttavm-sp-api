@@ -3,9 +3,17 @@
 namespace PttavmApi\PttavmSpApi\Exceptions;
 
 use Exception;
+use Throwable;
 
 class PttAvmException extends Exception
 {
+    /**
+     * API hata kodu
+     *
+     * @var string|null
+     */
+    protected ?string $api_code;
+
     /**
      * API yanıtı
      * 
@@ -14,18 +22,34 @@ class PttAvmException extends Exception
     protected ?array $response = null;
 
     /**
-     * PttAvmException constructor.
+     * PttAvmException sınıfı yapıcı fonksiyonu
      * 
      * @param string $message Hata mesajı
-     * @param int $code Hata kodu
+     * @param int $code HTTP durum kodu
+     * @param string|null $api_code API hata kodu
      * @param array|null $response API yanıtı
      * @param \Throwable|null $previous Önceki istisna
-     * @return void
      */
-    public function __construct(string $message, int $code = 0, ?array $response = null, \Throwable $previous = null)
-    {
+    public function __construct(
+        string $message = 'PttAvm API hatası',
+        int $code = 500,
+        ?string $api_code = null,
+        ?array $response = null,
+        ?\Throwable $previous = null
+    ) {
         parent::__construct($message, $code, $previous);
+        $this->api_code = $api_code;
         $this->response = $response;
+    }
+
+    /**
+     * API hata kodunu döndürür
+     *
+     * @return string|null
+     */
+    public function getApiCode(): ?string
+    {
+        return $this->api_code;
     }
 
     /**

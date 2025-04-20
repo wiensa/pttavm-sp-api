@@ -4,6 +4,17 @@ namespace PttavmApi\PttavmSpApi\Services;
 
 use PttavmApi\PttavmSpApi\Contracts\ApiServiceInterface;
 
+/**
+ * @method ProductService products()
+ * @method OrderService orders()
+ * @method CategoryService categories()
+ * @method ShippingService shipping()
+ * @method VariantService variants()
+ * @method CommissionService commissions()
+ * @method BrandService brands()
+ * @method ReportService reports()
+ * @method StoreService stores()
+ */
 class PttAvm
 {
     /**
@@ -14,7 +25,14 @@ class PttAvm
     protected ApiServiceInterface $api;
 
     /**
-     * PttAvm constructor.
+     * Servis örnekleri
+     *
+     * @var array
+     */
+    protected array $services = [];
+
+    /**
+     * PttAvmApi constructor.
      *
      * @param \PttavmApi\PttavmSpApi\Contracts\ApiServiceInterface $api
      */
@@ -28,9 +46,13 @@ class PttAvm
      *
      * @return \PttavmApi\PttavmSpApi\Services\ProductService
      */
-    public function product(): ProductService
+    public function products(): ProductService
     {
-        return app('pttavm.product');
+        if (!isset($this->services['product'])) {
+            $this->services['product'] = app('pttavm.product');
+        }
+        
+        return $this->services['product'];
     }
 
     /**
@@ -38,9 +60,13 @@ class PttAvm
      *
      * @return \PttavmApi\PttavmSpApi\Services\OrderService
      */
-    public function order(): OrderService
+    public function orders(): OrderService
     {
-        return app('pttavm.order');
+        if (!isset($this->services['order'])) {
+            $this->services['order'] = app('pttavm.order');
+        }
+        
+        return $this->services['order'];
     }
 
     /**
@@ -48,9 +74,13 @@ class PttAvm
      *
      * @return \PttavmApi\PttavmSpApi\Services\CategoryService
      */
-    public function category(): CategoryService
+    public function categories(): CategoryService
     {
-        return app('pttavm.category');
+        if (!isset($this->services['category'])) {
+            $this->services['category'] = app('pttavm.category');
+        }
+        
+        return $this->services['category'];
     }
 
     /**
@@ -60,7 +90,11 @@ class PttAvm
      */
     public function shipping(): ShippingService
     {
-        return app('pttavm.shipping');
+        if (!isset($this->services['shipping'])) {
+            $this->services['shipping'] = app('pttavm.shipping');
+        }
+        
+        return $this->services['shipping'];
     }
 
     /**
@@ -68,9 +102,13 @@ class PttAvm
      *
      * @return \PttavmApi\PttavmSpApi\Services\VariantService
      */
-    public function variant(): VariantService
+    public function variants(): VariantService
     {
-        return app('pttavm.variant');
+        if (!isset($this->services['variant'])) {
+            $this->services['variant'] = app('pttavm.variant');
+        }
+        
+        return $this->services['variant'];
     }
 
     /**
@@ -78,9 +116,13 @@ class PttAvm
      *
      * @return \PttavmApi\PttavmSpApi\Services\CommissionService
      */
-    public function commission(): CommissionService
+    public function commissions(): CommissionService
     {
-        return app('pttavm.commission');
+        if (!isset($this->services['commission'])) {
+            $this->services['commission'] = app('pttavm.commission');
+        }
+        
+        return $this->services['commission'];
     }
 
     /**
@@ -88,9 +130,13 @@ class PttAvm
      *
      * @return \PttavmApi\PttavmSpApi\Services\BrandService
      */
-    public function brand(): BrandService
+    public function brands(): BrandService
     {
-        return app('pttavm.brand');
+        if (!isset($this->services['brand'])) {
+            $this->services['brand'] = app('pttavm.brand');
+        }
+        
+        return $this->services['brand'];
     }
 
     /**
@@ -98,9 +144,13 @@ class PttAvm
      *
      * @return \PttavmApi\PttavmSpApi\Services\ReportService
      */
-    public function report(): ReportService
+    public function reports(): ReportService
     {
-        return app('pttavm.report');
+        if (!isset($this->services['report'])) {
+            $this->services['report'] = app('pttavm.report');
+        }
+        
+        return $this->services['report'];
     }
 
     /**
@@ -108,18 +158,32 @@ class PttAvm
      *
      * @return \PttavmApi\PttavmSpApi\Services\StoreService
      */
-    public function store(): StoreService
+    public function stores(): StoreService
     {
-        return app('pttavm.store');
+        if (!isset($this->services['store'])) {
+            $this->services['store'] = app('pttavm.store');
+        }
+        
+        return $this->services['store'];
     }
 
     /**
-     * API servisi örneğini döndürür.
+     * API servisini döndürür.
      *
      * @return \PttavmApi\PttavmSpApi\Contracts\ApiServiceInterface
      */
-    public function api(): ApiServiceInterface
+    public function getApiService(): ApiServiceInterface
     {
         return $this->api;
+    }
+    
+    /**
+     * HTTP istemcisini döndürür.
+     *
+     * @return \GuzzleHttp\Client
+     */
+    public function getHttpClient()
+    {
+        return $this->api->getClient();
     }
 } 

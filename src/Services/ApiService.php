@@ -6,7 +6,6 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use PttavmApi\PttavmSpApi\Contracts\ApiServiceInterface;
 use PttavmApi\PttavmSpApi\Exceptions\PttAvmException;
-use Illuminate\Support\Facades\Log;
 
 class ApiService implements ApiServiceInterface
 {
@@ -46,6 +45,13 @@ class ApiService implements ApiServiceInterface
     protected bool $debug;
 
     /**
+     * Log yapılıp yapılmayacağını belirler
+     * 
+     * @var bool
+     */
+    protected bool $shouldLog = false;
+
+    /**
      * ApiService constructor.
      *
      * @param string $username API kullanıcı adı
@@ -73,6 +79,19 @@ class ApiService implements ApiServiceInterface
             'timeout' => $timeout,
             'verify' => !$debug, // SSL doğrulamasını debug modunda devre dışı bırak
         ]);
+        
+        // Laravel ortamında olup olmadığımızı kontrol et
+        $this->shouldLog = class_exists('\Illuminate\Support\Facades\Log') && function_exists('config');
+    }
+
+    /**
+     * HTTP istemcisini döndürür.
+     *
+     * @return Client
+     */
+    public function getClient(): Client
+    {
+        return $this->client;
     }
 
     /**
@@ -183,14 +202,13 @@ class ApiService implements ApiServiceInterface
         ], $headers);
 
         try {
-            // İsteği logla
-            if (config('pttavm.log.api_requests', true)) {
-                Log::channel(config('pttavm.log.channel', 'daily'))
-                    ->debug('PttAvm API Request', [
-                        'method' => $method,
-                        'endpoint' => $endpoint,
-                        'options' => $this->sanitizeForLogging($options),
-                    ]);
+            // Laravel ortamında olup olmadığımızı kontrol et ve log yap
+            if ($this->shouldLog && $this->getShouldLogConfig('api_requests', true)) {
+                $this->log('debug', 'PttAvm API Request', [
+                    'method' => $method,
+                    'endpoint' => $endpoint,
+                    'options' => $this->sanitizeForLogging($options),
+                ]);
             }
 
             // İsteği gönder
@@ -198,89 +216,116 @@ class ApiService implements ApiServiceInterface
             $body = $response->getBody()->getContents();
             $data = json_decode($body, true);
 
-            // Yanıtı logla
-            if (config('pttavm.log.api_responses', true)) {
-                Log::channel(config('pttavm.log.channel', 'daily'))
-                    ->debug('PttAvm API Response', [
-                        'method' => $method,
-                        'endpoint' => $endpoint,
-                        'status' => $response->getStatusCode(),
-                        'data' => $data,
-                    ]);
+            // Laravel ortamında olup olmadığımızı kontrol et ve log yap
+            if ($this->shouldLog && $this->getShouldLogConfig('api_responses', true)) {
+                $this->log('debug', 'PttAvm API Response', [
+                    'method' => $method,
+                    'endpoint' => $endpoint,
+                    'status' => $response->getStatusCode(),
+                    'data' => $this->sanitizeForLogging($data),
+                ]);
             }
 
-            // Yanıt başarısız ise istisna fırlat
+            // JSON dönüşüm hatası kontrolü
+            if ($data === null && $body !== '') {
+                throw new PttAvmException(
+                    'API yanıtı JSON formatında değil: ' . substr($body, 0, 100),
+                    $response->getStatusCode()
+                );
+            }
+
+            // API hata kontrolü
             if (isset($data['status']) && $data['status'] !== 'success') {
                 throw new PttAvmException(
-                    $data['message'] ?? 'API isteği başarısız oldu',
-                    $data['code'] ?? 0,
+                    $data['message'] ?? 'API hatası oluştu',
+                    $response->getStatusCode(),
+                    $data['code'] ?? null,
                     $data
                 );
             }
 
             return $data;
         } catch (GuzzleException $e) {
-            // Hatayı logla
-            if (config('pttavm.log.errors', true)) {
-                Log::channel(config('pttavm.log.channel', 'daily'))
-                    ->error('PttAvm API Error', [
-                        'method' => $method,
-                        'endpoint' => $endpoint,
-                        'error' => $e->getMessage(),
-                    ]);
+            // Laravel ortamında olup olmadığımızı kontrol et ve log yap
+            if ($this->shouldLog && $this->getShouldLogConfig('api_errors', true)) {
+                $this->log('error', 'PttAvm API Error', [
+                    'method' => $method,
+                    'endpoint' => $endpoint,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             throw new PttAvmException(
-                'API isteği başarısız oldu: ' . $e->getMessage(),
-                $e->getCode(),
+                'API isteği gönderilirken hata oluştu: ' . $e->getMessage(),
+                $e->getCode() ?: 500,
                 null,
-                $e
-            );
-        } catch (\Exception $e) {
-            // Hatayı logla
-            if (config('pttavm.log.errors', true)) {
-                Log::channel(config('pttavm.log.channel', 'daily'))
-                    ->error('PttAvm API Error', [
-                        'method' => $method,
-                        'endpoint' => $endpoint,
-                        'error' => $e->getMessage(),
-                    ]);
-            }
-
-            throw new PttAvmException(
-                'İstek işlenirken bir hata oluştu: ' . $e->getMessage(),
-                $e->getCode(),
-                null,
+                [
+                    'method' => $method,
+                    'endpoint' => $endpoint,
+                    'error' => $e->getMessage()
+                ],
                 $e
             );
         }
     }
 
     /**
-     * Loglamadan önce hassas verileri temizler.
+     * Laravel ortamında config değerini alır
+     * 
+     * @param string $key Config anahtarı
+     * @param mixed $default Varsayılan değer
+     * @return mixed
+     */
+    protected function getShouldLogConfig(string $key, $default = null)
+    {
+        if (function_exists('config')) {
+            return config('pttavm.log.' . $key, $default);
+        }
+        
+        return $default;
+    }
+    
+    /**
+     * Log mesajını kaydeder
+     * 
+     * @param string $level Log seviyesi (debug, info, warning, error, critical)
+     * @param string $message Log mesajı
+     * @param array $context Log bağlamı
+     * @return void
+     */
+    protected function log(string $level, string $message, array $context = []): void
+    {
+        if (!$this->shouldLog) {
+            return;
+        }
+        
+        if (class_exists('\Illuminate\Support\Facades\Log')) {
+            $channel = function_exists('config') 
+                ? config('pttavm.log.channel', 'daily') 
+                : 'daily';
+                
+            \Illuminate\Support\Facades\Log::channel($channel)->$level($message, $context);
+        }
+    }
+
+    /**
+     * Hassas verileri loglama için temizler.
      *
-     * @param array $data
-     * @return array
+     * @param array $data Temizlenecek veri
+     * @return array Temizlenmiş veri
      */
     protected function sanitizeForLogging(array $data): array
     {
-        // JSON verilerini kopyala
-        $sanitized = $data;
-
-        // Hassas bilgileri maskele
-        if (isset($sanitized['json'])) {
-            if (isset($sanitized['json']['password'])) {
-                $sanitized['json']['password'] = '********';
+        $sensitiveKeys = ['password', 'token', 'api_key', 'secret', 'auth'];
+        
+        foreach ($data as $key => $value) {
+            if (in_array(strtolower($key), $sensitiveKeys)) {
+                $data[$key] = '***MASKED***';
+            } elseif (is_array($value)) {
+                $data[$key] = $this->sanitizeForLogging($value);
             }
         }
-
-        // Sorgu parametrelerindeki hassas bilgileri maskele
-        if (isset($sanitized['query'])) {
-            if (isset($sanitized['query']['password'])) {
-                $sanitized['query']['password'] = '********';
-            }
-        }
-
-        return $sanitized;
+        
+        return $data;
     }
 } 
